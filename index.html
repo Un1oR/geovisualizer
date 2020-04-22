@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Geovizualizer</title>
+<style>
+html, body, #map {
+	height: 100%;
+	width: 100%;
+}
+.leaflet-div-icon {
+	border:none !important;
+	background:transparent !important;
+}
+.bullet-marker {
+	background-color: #fff;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+	border: 4px solid #0281f2;
+	border-radius: 10px;
+	box-sizing: border-box;
+	font-size:10px;
+	height: 20px;
+	text-align: center;
+	width: 20px;
+}
+</style>
+<script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full"></script>
+<script type="text/javascript">
+'use strict';
+DG.then(() => {
+	let map = DG.map('map', {
+		center: DG.latLng(55.027, 82.915),
+		zoom: 15,
+		zoomControl: false,
+		fullscreenControl: false
+	});
+	var layerGroup = L.layerGroup();
+	layerGroup.addTo(map);
+
+	function addGeometry(geom)
+	{
+		layerGroup.addLayer(geom);
+	}
+
+	function parseQuery()
+	{
+		let queryParams = new URLSearchParams(window.location.search);
+
+		let wkt = queryParams.get('wkt');
+		let geometries = wkt
+			? wkt.split(';').map(decodeURIComponent).map(DG.Wkt.geoJsonLayer)
+			: null;
+
+		let markers = queryParams.get('markers');
+		if (markers)
+		{
+			try {
+				markers = decodeURIComponent(markers);
+				markers = JSON.parse(markers);
+				markers = markers.map(marker => {
+					return {
+						"lon": marker[0],
+						"lat": marker[1],
+						"text": marker?.[2] || '',
+						"color": marker?.[3] || '#0281F2'
+					};
+				});
+			} catch(e)
+			{
+				console.log(e);
+				markers = null;
+			}
+		}
+		else
+		{
+			markers = null;
+		}
+
+		return {
+			'geometries': geometries,
+			'markers': markers
+		};
+	}
+
+	let data = parseQuery();
+	data.geometries?.forEach(addGeometry);
+	data.markers?.forEach(marker => {
+			console.log('123');
+			let markerIcon = DG.divIcon({
+				html: "<div class=bullet-marker style='border-color:" + marker['color'] + "'>" + marker['text'] + "</div>",
+				iconSize:[20,20],
+				iconAnchor:[10,10]
+			});
+			DG.marker([marker['lat'], marker['lon']], { icon: markerIcon })
+				.addTo(map);
+		
+	});
+});
+</script>
+</head>
+<body>
+	<div id="map"></div>
+</body>
+</html>
